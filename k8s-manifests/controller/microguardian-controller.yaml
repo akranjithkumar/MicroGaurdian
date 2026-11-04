@@ -1,0 +1,72 @@
+# ============================================================
+# MicroGuardian Controller RBAC and Deployment Manifests
+# ============================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: microguardian-controller
+  namespace: microguardian
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: microguardian-controller
+rules:
+  # Permissions to observe and scale deployments
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  # Permissions to list and inspect pods for completeness checking
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: microguardian-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: microguardian-controller
+subjects:
+  - kind: ServiceAccount
+    name: microguardian-controller
+    namespace: microguardian
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microguardian-controller
+  namespace: microguardian
+  labels:
+    app: microguardian-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: microguardian-controller
+  template:
+    metadata:
+      labels:
+        app: microguardian-controller
+    spec:
+      serviceAccountName: microguardian-controller
+      containers:
+        - name: controller
+          image: microguardian-controller:latest
+          imagePullPolicy: Never
+          env:
+            - name: IN_CLUSTER
+              value: "true"
+            - name: PROMETHEUS_URL
+              value: "http://prometheus.microguardian.svc.cluster.local:9090"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
