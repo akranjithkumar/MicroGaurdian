@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microguardian-app
+  namespace: microguardian
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: microguardian-app
+  template:
+    metadata:
+      labels:
+        app: microguardian-app
+    spec:
+      containers:
+        - name: microguardian-app
+          image: microguardian-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
